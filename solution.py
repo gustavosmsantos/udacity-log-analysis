@@ -3,9 +3,24 @@
 import psycopg2
 
 def generate_report():
-    print(find_most_readed_articles())
-    print(find_most_readed_authors())
-    print(find_most_request_errors())
+    print("Most popular articles")
+    format_numeric(find_most_readed_articles())
+
+    print("Most readed authors")
+    format_numeric(find_most_readed_authors())
+
+    print("Days with errors bigger than one percent")
+    format_percentage(find_most_request_errors())
+
+def format_numeric(tuples):
+    for key, value in tuples:
+        print('- {0}: {1} times'.format(key, value))
+    print('\n')
+
+def format_percentage(tuples):
+    for key, value in tuples:
+        print('- {0}: {1}% errors'.format(key, value))
+    print('\n')
 
 def find_most_readed_articles():
     db = psycopg2.connect(database="news")
@@ -41,7 +56,7 @@ def find_most_request_errors():
     c = db.cursor()
     query = '''
         select 
-            totals.time as day,
+            to_char(totals.time, 'Mon DD, YYYY') as day,
             trunc((day_errors::decimal / day_totals::decimal) * 100, 2) as errors
         from (select time::date, count(*) as day_totals from log group by time::date) as totals
         join (select time::date, count(*) as day_errors from log where (status like '4%' or status like '5%') group by time::date) as errors on totals.time = errors.time
